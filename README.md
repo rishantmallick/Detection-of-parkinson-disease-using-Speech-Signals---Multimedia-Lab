@@ -1,0 +1,1 @@
+The algorithms attempt to capture voice markers in the speech of affected people. We will first use deep learning algorithms to classify speeches, and then use interpretable AI to understand the progress of disease and accordingly  suggest treatment plan
