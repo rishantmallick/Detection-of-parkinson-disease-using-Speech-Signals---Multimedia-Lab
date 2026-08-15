@@ -1,4 +1,8 @@
-Speech Dynamics: Articulatory Reconstruction and Physics-Informed Acoustic Representation Learning
+Speech Dynamics: Articulatory Reconstruction & Physics-Informed Acoustic Representation Learning
+
+A research framework for understanding speech through articulatory motion and acoustic dynamics.
+
+Focus: rtMRI · ATB Reconstruction · Spectrograms · ViT · Physics-Informed Dynamics · GRL · Speech Representation Learning
 
 A research framework for studying speech dynamics from two complementary perspectives:
 
@@ -7,6 +11,8 @@ Articulatory dynamics from real-time MRI (rtMRI)
 Acoustic dynamics from speech spectrograms
 
 The project combines air--tissue boundary (ATB) reconstruction, deep representation learning, a Vision Transformer (ViT), physics-inspired dynamical parameters, and domain-adversarial learning.
+
+Core idea: Learn complementary representations of speech from articulatory geometry (rtMRI) and acoustic structure (spectrograms), while using reconstruction, physics-inspired regularization, and domain-adversarial learning to improve representation quality.
 
 Overview
 
@@ -58,7 +64,7 @@ Exploit reconstruction/self-supervised learning when labeled data are limited.
 
 Obtain useful representations for downstream speech classification.
 
-Part I -- Articulatory Dynamics from rtMRI
+🔬 Part I — Articulatory Dynamics from rtMRI
 
 Real-Time MRI
 
@@ -90,7 +96,7 @@ C_t \in \mathbb{R}^{100\times2}.
 
 Neighboring-Frame Reconstruction
 
-The target contour is reconstructed from its temporal neighbors:
+Target reconstruction: The target contour is reconstructed from its temporal neighbors:
 
 [
 C_{t-n}, \qquad C_{t+n}.
@@ -116,7 +122,7 @@ Because both past and future frames are used, this is an offline reconstruction/
 
 Neighboring-Frame Baseline
 
-A simple baseline estimates the target by averaging the neighboring contours:
+Baseline: A simple baseline estimates the target by averaging the neighboring contours:
 
 \frac{C_{\mathrm{past}}+C_{\mathrm{future}}}{2}.
 ]
@@ -231,7 +237,7 @@ A contour smoothness term can be:
 |\hat P_i-\hat P_{i-1}|_2^2.
 ]
 
-Part II -- Acoustic Speech Representation
+🎙️ Part II — Acoustic Speech Representation
 
 Speech to Spectrogram
 
@@ -273,7 +279,7 @@ For 50 frequency bins:
 X_t=[X(f_1,t),\ldots,X(f_{50},t)].
 ]
 
-The 50 values are frequency samples, not 50 different anatomical parts of the vocal tract.
+The 50 values are frequency samples, not 50 anatomical parts of the vocal tract.
 
 [
 \text{Articulator movement}
@@ -365,7 +371,7 @@ Causal Mask
 
 For offline reconstruction, both past and future context can be used, so a non-causal Transformer is appropriate.
 
-Part III -- Physics-Inspired Acoustic Dynamics
+⚙️ Part III — Physics-Inspired Acoustic Dynamics
 
 A damped second-order dynamical system is:
 
@@ -440,7 +446,7 @@ Equivalently:
 
 The smoothness term discourages rapid frame-to-frame changes, while the gradient-difference term discourages abrupt changes in temporal slope.
 
-Part IV -- Domain-Adversarial Learning
+🧠 Part IV — Domain-Adversarial Learning
 
 The encoder produces:
 
@@ -745,7 +751,7 @@ Coordinates/point  : 2
 
 The primary reconstruction metric is Dynamic Time Warping (DTW).
 
-Key Conceptual Distinctions
+⭐ Key Conceptual Distinctions
 
 Positional Encoding vs Causality
 
