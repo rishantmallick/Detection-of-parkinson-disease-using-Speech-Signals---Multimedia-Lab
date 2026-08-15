@@ -1,955 +1,1417 @@
-Speech Dynamics: Articulatory Reconstruction & Physics-Informed Acoustic Representation Learning
+# Speech-Based Parkinson’s Disease Analysis
+### From Acoustic Feature Engineering to Physics-Inspired Vision Transformers
 
-A research framework for understanding speech through articulatory motion and acoustic dynamics.
+<p align="center">
+  <strong>A unified speech-processing and deep-learning framework for Parkinson’s disease analysis</strong>
+</p>
 
-Focus: rtMRI · ATB Reconstruction · Spectrograms · ViT · Physics-Informed Dynamics · GRL · Speech Representation Learning
+<p align="center">
+  <em>Acoustic Features • Self-Supervised Learning • Spectrograms • Vision Transformers • Physics-Inspired Dynamics • Domain-Adversarial Learning</em>
+</p>
 
-A research framework for studying speech dynamics from two complementary perspectives:
+---
 
-Articulatory dynamics from real-time MRI (rtMRI)
+## 📌 Overview
 
-Acoustic dynamics from speech spectrograms
+Speech is a rich biological signal containing information about **phonation, articulation, vocal-tract configuration, timing, and motor control**.
 
-The project combines air--tissue boundary (ATB) reconstruction, deep representation learning, a Vision Transformer (ViT), physics-inspired dynamical parameters, and domain-adversarial learning.
+This project develops a progression from conventional speech processing to a physics-inspired deep-learning framework for **Parkinson’s disease (PD) analysis**.
 
-Core idea: Learn complementary representations of speech from articulatory geometry (rtMRI) and acoustic structure (spectrograms), while using reconstruction, physics-inspired regularization, and domain-adversarial learning to improve representation quality.
+The work combines:
 
-Overview
+- **Classical acoustic feature engineering**
+- **Frequency-domain and cepstral analysis**
+- **Classical machine learning**
+- **Self-supervised speech representation learning**
+- **Learned speech embeddings**
+- **LSTM and Transformer-based sequence modeling**
+- **Spectrogram-based Vision Transformers**
+- **Physics-inspired dynamical modeling**
+- **Gradient Reversal Layer (GRL) based domain-adversarial learning**
 
-Speech is produced by the interaction between vocal-fold excitation and the continuously changing geometry of the vocal tract.
+The overall research progression is:
 
-The central idea is:
+```text
+Speech
+   ↓
+Acoustic / Spectral Representation
+   ↓
+Learned Representation
+   ↓
+Structured Dynamics
+   ↓
+Robust Classification
+```
 
-                         SPEECH PRODUCTION
-                                |
-                +---------------+---------------+
-                |                               |
-                v                               v
-          ARTICULATION                      ACOUSTICS
-                |                               |
-                v                               v
-              rtMRI                         Waveform
-                |                               |
-                v                               v
-        ATB contour sequence              Spectrogram
-                |                               |
-                v                               v
-   Neighboring-frame reconstruction       ConvStem + ViT
-                |                               |
-                v                               v
-       Reconstructed contour             h_CLS representation
-                |                               |
-                +---------------+---------------+
-                                |
-                                v
-                       SPEECH DYNAMICS
+---
 
-rtMRI describes articulatory geometry, while the spectrogram describes the acoustic consequence of that geometry.
+## 🎯 Research Motivation
 
-Research Objectives
+Parkinson’s disease is associated with motor impairments that can affect speech production.
 
-Reconstruct missing articulatory information from neighboring rtMRI frames.
+Potential speech manifestations include:
 
-Learn representations of speech dynamics.
+- Reduced loudness
+- Monopitch
+- Reduced intensity variation
+- Imprecise articulation
+- Altered timing
+- Pauses
+- Vocal instability
 
-Model local and global time--frequency structure.
+These changes motivate speech as a **non-invasive signal for computational PD analysis**.
 
-Use physics-inspired constraints to describe acoustic dynamics.
+The project therefore asks:
 
-Learn frequency-dependent damping and oscillatory behavior.
+> **Can interpretable acoustic measurements and learned time-frequency representations be combined with structured dynamical modeling to obtain robust representations for PD analysis?**
 
-Reduce dependence on recording-domain characteristics.
+---
 
-Exploit reconstruction/self-supervised learning when labeled data are limited.
+# 🧭 Research Pipeline
 
-Obtain useful representations for downstream speech classification.
+The framework progresses through two complementary perspectives.
 
-🔬 Part I — Articulatory Dynamics from rtMRI
+### Conventional Speech-Processing Pipeline
 
-Real-Time MRI
+```text
+Speech
+  ↓
+Preprocessing
+  ↓
+Segmentation
+  ↓
+Feature Extraction
+  ↓
+ML / DL
+  ↓
+Prediction
+```
 
-Real-time MRI provides a sequence of images showing the changing configuration of the vocal tract during speech.
+### Deep-Learning Pipeline
 
-Three air--tissue boundary contours are considered:
-
-Contour
-
-Region
-
-Contour 1
-
-Upper lip + velum
-
-Contour 2
-
-Lower lip + tongue base
-
-Contour 3
-
-Glottal/laryngeal region
-
-Each contour is represented using 100 two-dimensional points:
-
-[
-C_t \in \mathbb{R}^{100\times2}.
-]
-
-Neighboring-Frame Reconstruction
-
-Target reconstruction: The target contour is reconstructed from its temporal neighbors:
-
-[
-C_{t-n}, \qquad C_{t+n}.
-]
-
-The model learns:
-
-[
-\hat{C}t=f\theta(C_{t-n},C_{t+n}).
-]
-
-Conceptually:
-
-Past frame                  Target                  Future frame
-    |                          |                          |
-    v                          v                          v
- C(t-n)  ----------------->  C(t)  <---------------- C(t+n)
-              \                 ^                 /
-               \                |                /
-                +------ Model Prediction -------+
-
-Because both past and future frames are used, this is an offline reconstruction/interpolation task, rather than strict causal forecasting.
-
-Neighboring-Frame Baseline
-
-Baseline: A simple baseline estimates the target by averaging the neighboring contours:
-
-\frac{C_{\mathrm{past}}+C_{\mathrm{future}}}{2}.
-]
-
-The neural network learns the nonlinear residual:
-
-C_t-
-\frac{C_{t-n}+C_{t+n}}{2}.
-]
-
-The final prediction is:
-
-[
-\hat{C}t=C{\mathrm{base}}+\hat{R}_t.
-]
-
-Arc-Length Interpolation
-
-Raw contour annotations may contain different numbers of points and nonuniform point spacing.
-
-For consecutive points:
-
-[
-d_i=
-\sqrt{
-(x_{i+1}-x_i)^2+
-(y_{i+1}-y_i)^2
-}.
-]
-
-The cumulative arc length is:
-
-[
-s_i=\sum_{k=1}^{i}d_k.
-]
-
-It is normalized as:
-
-[
-\hat{s}i=\frac{s_i}{s{m-1}}.
-]
-
-The contour is then resampled at uniformly spaced arc-length positions, producing a consistent:
-
-[
-100\times2
-]
-
-representation.
-
-Models Investigated
-
-MLP
-
-[
-(100,2)+(100,2)\rightarrow400.
-]
-
-The MLP learns global relationships between contour coordinates.
-
-CNN
-
-A one-dimensional CNN processes the contour sequence and captures local relationships between neighboring contour points.
-
-Transformer
-
-Self-attention allows relationships between distant contour points to be modeled directly.
-
-Variational Autoencoder
-
-[
-q_\phi(z|x)=
-\mathcal{N}(\mu(x),\operatorname{diag}(\sigma^2(x)))
-]
-
-with reparameterization:
-
-[
-z=\mu+\sigma\odot\epsilon,
-\qquad
-\epsilon\sim\mathcal{N}(0,I).
-]
-
-GAN
-
-A generator predicts contours while a discriminator attempts to distinguish generated contours from real contours.
-
-Reconstruction Loss
-
-Huber loss is:
-
-[
-L_\delta(y,\hat{y})=
-\begin{cases}
-\frac12(y-\hat y)^2,
-& |y-\hat y|\leq\delta,\
-\delta|y-\hat y|-\frac12\delta^2,
-& |y-\hat y|>\delta.
-\end{cases}
-]
-
-The experiments use:
-
-[
-\delta=0.1.
-]
-
-A contour smoothness term can be:
-
-\frac{1}{N-1}
-\sum_{i=2}^{N}
-|\hat P_i-\hat P_{i-1}|_2^2.
-]
-
-🎙️ Part II — Acoustic Speech Representation
-
-Speech to Spectrogram
-
-Speech waveform
-       |
-       v
-Preprocessing + VAD
-       |
-       v
+```text
+Speech
+  ↓
 Spectrogram
-       |
-       v
-ConvStem
-       |
-       v
-GELU
-       |
-       v
-Stride Downsampling
-       |
-       v
-Patch / Token Representation
-       |
-       v
-Vision Transformer
-       |
-       v
-h_CLS
+  ↓
+Encoder
+  ↓
+Representation
+  ↓
+Prediction
+```
 
-A spectrogram represents acoustic energy as a function of time and frequency:
+The two approaches are complementary:
 
-[
-X(f,t).
-]
+**Hand-crafted features** provide interpretable acoustic descriptors, while **learned representations** can capture complex patterns that are difficult to specify manually.
 
-For 50 frequency bins:
+---
 
-[
-X_t=[X(f_1,t),\ldots,X(f_{50},t)].
-]
+# 🗂️ Project Structure
 
-The 50 values are frequency samples, not 50 anatomical parts of the vocal tract.
+The research can be viewed as the following progression:
 
-[
-\text{Articulator movement}
-\rightarrow
-\text{Vocal-tract configuration}
-\rightarrow
-\text{Acoustic response}
-\rightarrow
-\text{Frequency distribution}.
-]
+```text
+                    SPEECH SIGNAL
+                         │
+          ┌──────────────┴──────────────┐
+          │                             │
+          ▼                             ▼
+   SIGNAL PROCESSING              DEEP LEARNING
+          │                             │
+          ▼                             ▼
+ Classical Features               Spectrogram
+          │                             │
+          ▼                             ▼
+    ML Classifiers                ConvStem + ViT
+          │                             │
+          │                             ▼
+          │                         h_CLS
+          │                             │
+          └──────────────┬──────────────┘
+                         ▼
+               Structured Dynamics
+                         │
+                         ▼
+              Domain-Invariant Features
+                         │
+                         ▼
+                   PD Analysis
+```
 
-Convolutional Stem
+---
 
-The convolutional stem extracts local time--frequency patterns.
+# 1. 🎙️ Speech Signal Representation
 
-GELU is:
+An analog speech signal is represented as:
 
-[
-\operatorname{GELU}(x)=x\Phi(x).
-]
+\[
+x(t)
+\]
 
-Stride-based downsampling reduces resolution and therefore the number of tokens processed by the Transformer.
+After sampling:
 
-Vision Transformer and CLS Representation
+\[
+x[n] = x(nT_s),
+\qquad
+f_s = \frac{1}{T_s}.
+\]
 
-The resulting tokens are combined with a learnable CLS token:
+For a recording of duration \(T\), the approximate number of samples is:
 
-[
-[\mathrm{CLS},P_1,\ldots,P_N].
-]
+\[
+N=f_sT.
+\]
 
-After Transformer processing:
+The Nyquist condition requires:
 
-[
-[\mathrm{CLS},P_1,\ldots,P_N]
-\rightarrow
-[h_{\mathrm{CLS}},h_1,\ldots,h_N].
-]
+\[
+f_{\max}<\frac{f_s}{2}.
+\]
 
-The output corresponding to the CLS token is:
+For example, a 16-kHz recording can represent frequencies up to approximately **8 kHz**.
 
-[
-h_{\mathrm{CLS}}.
-]
+Bit depth controls amplitude quantization. With \(B\) bits, there are:
 
-The CLS representation acts as a global summary of the input spectrogram. It aggregates information from different time--frequency regions through self-attention.
+\[
+2^B
+\]
 
-It can then be passed to a downstream classifier:
+possible quantization levels.
 
-[
-h_{\mathrm{CLS}}
-\rightarrow
-\text{Classification Head}
-\rightarrow
-[P(\mathrm{PD}),P(\mathrm{HC})].
-]
+---
 
-Importantly, (h_{\mathrm{CLS}}) is the learned representation, not the final prediction.
+# 2. 🧹 Preprocessing
 
-Positional Encoding and Causality
+Raw recordings may contain:
 
-Sinusoidal positional encoding is:
+- Silence
+- Environmental noise
+- Microphone noise
+- Electrical interference
+- Reverberation
+- Speech
+- Non-speech events
 
-[
-PE(pos,2i)=
-\sin\left(
-\frac{pos}{10000^{2i/d_{\mathrm{model}}}}
-\right)
-]
+A practical preprocessing pipeline is:
 
-and
+```text
+Raw Recording
+     ↓
+Silence Removal
+     ↓
+Noise Reduction
+     ↓
+Normalization
+```
 
-[
-PE(pos,2i+1)=
+Normalization is expressed as:
+
+\[
+x_{\mathrm{norm}}
+=
+\frac{x-\mu}{\sigma}.
+\]
+
+The normalization statistics should be computed using the appropriate training data to avoid information leakage.
+
+---
+
+# 3. 🎤 Voice Activity Detection, Framing & Windowing
+
+## Voice Activity Detection
+
+Voice Activity Detection (VAD) identifies speech-containing regions.
+
+Short-time RMS energy can be defined as:
+
+\[
+E_{\mathrm{RMS}}[m]
+=
+\sqrt{
+\frac{1}{N}
+\sum_{n=0}^{N-1}x_m[n]^2
+}.
+\]
+
+A frame may be classified as non-speech when:
+
+\[
+E_{\mathrm{RMS}}[m]<\tau.
+\]
+
+Zero-crossing rate is:
+
+\[
+ZCR
+=
+\frac{1}{N-1}
+\sum_{n=1}^{N-1}
+\mathbf{1}[x[n]x[n-1]<0].
+\]
+
+Energy and ZCR can be combined in practical VAD systems.
+
+## Framing
+
+Speech is approximately stationary only over short intervals, so it is divided into overlapping frames:
+
+\[
+x_m[n]=x[n+mH],
+\]
+
+where \(H\) is the hop size.
+
+Windowing gives:
+
+\[
+x_w[n]=x_m[n]w[n].
+\]
+
+For a Hamming window:
+
+\[
+w[n]
+=
+0.54-0.46
 \cos\left(
-\frac{pos}{10000^{2i/d_{\mathrm{model}}}}
+\frac{2\pi n}{N-1}
 \right).
-]
+\]
 
-Positional encoding and causal masking are separate concepts:
+Windowing reduces discontinuities at frame boundaries and spectral leakage.
 
-Positional Encoding
-        |
-        +--> tells the Transformer where a token occurs
+---
 
-Causal Mask
-        |
-        +--> controls which tokens a token can attend to
+# 4. 🎵 Traditional Acoustic Features
 
-For offline reconstruction, both past and future context can be used, so a non-causal Transformer is appropriate.
+A major part of the framework uses interpretable speech descriptors.
 
-⚙️ Part III — Physics-Inspired Acoustic Dynamics
+## Fundamental Frequency \(F_0\)
 
-A damped second-order dynamical system is:
+The fundamental frequency describes the rate of vocal-fold vibration:
 
-F.
-]
+\[
+F_0=\frac{1}{T_0}.
+\]
 
-This is a physics-inspired representation, not a claim that every spectrogram bin is literally an independent mechanical oscillator.
+Pitch is the perceptual correlate of \(F_0\).
 
-The parameters are interpreted as:
+Mean pitch:
 
-Parameter
+\[
+\bar F_0
+=
+\frac{1}{M}
+\sum_{m=1}^{M}F_0^{(m)}.
+\]
 
-Interpretation
+Pitch variability:
 
-(F)
+\[
+\sigma_{F_0}
+=
+\sqrt{
+\frac{1}{M}
+\sum_{m=1}^{M}
+\left(
+F_0^{(m)}-\bar F_0
+\right)^2
+}.
+\]
 
-Shared excitation/driving force
+Reduced pitch variability may be associated with monopitch in Parkinsonian speech.
 
-(\gamma)
+---
 
-Frequency-dependent damping behavior
+## Jitter
 
-(\omega)
+Jitter describes cycle-to-cycle variation in vocal period:
 
-Frequency-dependent oscillatory behavior
+\[
+J_{\mathrm{abs}}
+=
+\frac{1}{N-1}
+\sum_{i=1}^{N-1}
+|T_i-T_{i+1}|.
+\]
 
-(X_f)
+**Jitter → frequency / period variation**
 
-Acoustic response at frequency component (f)
+---
 
-Why (F) Has One Value While (\gamma) and (\omega) Have 50 Values
+## Shimmer
 
-The excitation is modeled as:
+Shimmer describes amplitude variation:
 
+\[
+S_{\mathrm{abs}}
+=
+\frac{1}{N-1}
+\sum_{i=1}^{N-1}
+|A_i-A_{i+1}|.
+\]
+
+**Shimmer → amplitude variation**
+
+---
+
+## HNR
+
+The harmonics-to-noise ratio is conceptually:
+
+\[
+HNR_{\mathrm{dB}}
+=
+10\log_{10}
+\left(
+\frac{P_{\mathrm{harmonic}}}
+{P_{\mathrm{noise}}}
+\right).
+\]
+
+---
+
+## Formants
+
+Formants are vocal-tract resonances:
+
+\[
+F_1,F_2,F_3,\ldots
+\]
+
+They are affected by the configuration of the tongue, lips, jaw, and other vocal-tract structures.
+
+---
+
+## RMS Energy
+
+\[
+RMS
+=
+\sqrt{
+\frac{1}{N}
+\sum_{n=1}^{N}x[n]^2
+}.
+\]
+
+Useful energy descriptors include:
+
+- Mean RMS
+- RMS standard deviation
+- Extrema
+- Dynamic range
+- Temporal energy patterns
+
+---
+
+# 5. 🌐 Frequency-Domain Analysis
+
+The Fourier transform expresses a signal in terms of frequency components:
+
+\[
+X(f)
+=
+\int_{-\infty}^{\infty}
+x(t)e^{-j2\pi ft}\,dt.
+\]
+
+For a discrete signal:
+
+\[
+X[k]
+=
+\sum_{n=0}^{N-1}
+x[n]e^{-j2\pi kn/N}.
+\]
+
+A direct DFT has approximately:
+
+\[
+O(N^2)
+\]
+
+complexity, whereas FFT algorithms reduce this to approximately:
+
+\[
+O(N\log N).
+\]
+
+---
+
+# 6. 🎼 DCT, Cepstral Analysis & MFCCs
+
+The Discrete Cosine Transform (DCT) represents a sequence using cosine basis functions.
+
+It is particularly important for MFCCs because it approximately decorrelates filter-bank energies and concentrates information into a compact representation.
+
+## MFCC Pipeline
+
+```text
+Waveform
+   ↓
+Framing
+   ↓
+Windowing
+   ↓
+FFT
+   ↓
+Power Spectrum
+   ↓
+Mel Filter Bank
+   ↓
+Log Energies
+   ↓
+DCT
+   ↓
+MFCCs
+```
+
+A common mel-scale conversion is:
+
+\[
+m(f)
+=
+2595
+\log_{10}
+\left(
+1+\frac{f}{700}
+\right).
+\]
+
+For a filter \(H_m[k]\) and power spectrum \(P[k]\):
+
+\[
+E_m
+=
+\sum_kP[k]H_m[k].
+\]
+
+Log filter-bank energy:
+
+\[
+L_m=\log(E_m+\epsilon).
+\]
+
+The DCT produces MFCC coefficients:
+
+\[
+c_n
+=
+\sum_{m=1}^{M}
+L_m
+\cos
+\left[
+\frac{\pi n}{M}
+\left(
+m-\frac12
+\right)
+\right].
+\]
+
+A representative classical feature vector is:
+
+\[
+\begin{aligned}
 [
-F(t).
-]
+&F_0,\,
+\sigma_{F_0},\,
+\mathrm{Jitter},\,
+\mathrm{Shimmer},\,
+\mathrm{HNR},\,
+\mathrm{RMS},\,
+\mathrm{ZCR},\\
+&F_1,\,
+F_2,\,
+F_3,\,
+\mathrm{MFCC}_1,\,
+\ldots,\,
+\mathrm{MFCC}_K
+].
+\end{aligned}
+\]
 
-Damping and oscillatory parameters are frequency dependent:
+---
 
-[\gamma(f_1,t),\ldots,\gamma(f_{50},t)]
+# 7. 🤖 Classical & Learned Speech Representations
+
+## Classical Machine Learning
+
+Classical models operate on engineered acoustic features.
+
+### Random Forest
+
+Random Forest uses an ensemble of decision trees:
+
+\[
+\hat y
+=
+\operatorname{mode}
+\{T_1(x),\ldots,T_B(x)\}.
+\]
+
+### SVM
+
+An SVM seeks a decision boundary with a large margin.
+
+### Feed-Forward Neural Network
+
+A neural network can also classify the acoustic feature vector directly.
+
+---
+
+## Self-Supervised Learning
+
+Self-supervised learning (SSL) learns representations without requiring a manual label for every training example.
+
+The conceptual pipeline is:
+
+```text
+Unlabeled Speech
+      ↓
+SSL Pretraining
+      ↓
+Speech Embedding
+      ↓
+PD Classifier
+```
+
+A wav2vec-style system can be summarized as:
+
+```text
+Waveform
+   ↓
+Feature Encoder
+   ↓
+Context Network
+   ↓
+Contextual Representation
+```
+
+A learned embedding such as:
+
+\[
+e\in\mathbb{R}^{768}
+\]
+
+should **not** be interpreted as 768 independent hand-crafted acoustic features. Its dimensions jointly form a learned representation.
+
+Hand-crafted and learned features can also be combined:
+
+\[
+h=[e;a],
+\qquad
+\hat y=f_\theta(h).
+\]
+
+---
+
+# 8. 🔄 Sequence Modeling
+
+Speech is inherently sequential.
+
+**LSTMs** model temporal dependencies using recurrent gates, whereas **Transformers** use attention.
+
+Scaled dot-product attention is:
+
+\[
+\operatorname{Attention}(Q,K,V)
+=
+\operatorname{softmax}
+\left(
+\frac{QK^\top}{\sqrt{d_k}}
+\right)V.
+\]
+
+Multi-head attention is:
+
+\[
+\operatorname{MHA}(Q,K,V)
+=
+\operatorname{Concat}
+(\mathrm{head}_1,\ldots,\mathrm{head}_h)W^O.
+\]
+
+This permits relationships between distant speech frames to be modeled directly.
+
+---
+
+# 9. 🔬 Physics-Inspired Spectrogram Representation
+
+The deep-learning perspective begins with the spectrogram:
+
+\[
+X(f,t),
+\]
+
+which describes acoustic energy over time and frequency.
+
+If there are 50 frequency bins, a time frame can be represented as:
+
+\[
+X_t=
+[
+X(f_1,t),\ldots,X(f_{50},t)
+].
+\]
+
+### Important Interpretation
+
+These 50 values are **acoustic frequency bins**, not 50 physical vocal-tract regions.
+
+The conceptual relationship is:
+
+```text
+Articulator Movement
+        ↓
+Vocal-Tract Configuration
+        ↓
+Acoustic Response
+        ↓
+Frequency Distribution
+```
+
+Different parts of the vocal tract have different acoustic effects, while the overall vocal-tract configuration determines how acoustic energy is distributed across frequency regions.
+
+---
+
+# 10. ⚙️ Physics-Inspired Dynamical Model
+
+The acoustic dynamics are represented by the abstraction:
+
+\[
+\frac{d^2X_f}{dt^2}
++
+2\gamma_f
+\frac{dX_f}{dt}
++
+\omega_f^2X_f
+=
+F.
+\]
+
+Here:
+
+| Quantity | Interpretation |
+|---|---|
+| \(F\) | Driving force / excitation |
+| \(\gamma\) | Damping-related behavior |
+| \(\omega\) | Oscillatory / natural-frequency-related behavior |
+| \(X_f\) | Response associated with frequency component \(f\) |
+
+The equation is a **learned dynamical abstraction**, rather than a claim that every spectrogram bin is an independent physical oscillator.
+
+---
+
+## Why is \(F\) Shared?
+
+The architectural assumption is:
+
+\[
+F(t)\rightarrow\text{shared excitation}.
+\]
+
+Meanwhile:
+
+\[
+\gamma(t)
+=
+[
+\gamma_1(t),\ldots,\gamma_{50}(t)
 ]
+\]
 
 and
 
-[\omega(f_1,t),\ldots,\omega(f_{50},t)].
+\[
+\omega(t)
+=
+[
+\omega_1(t),\ldots,\omega_{50}(t)
 ]
+\]
 
-The 50 values correspond to 50 acoustic frequency bins, not 50 physical vocal-tract locations.
+are frequency dependent.
 
-Different acoustic frequency components can exhibit different temporal dynamics because the vocal-tract configuration shapes the acoustic energy distribution.
+Therefore:
 
-Dynamical Regularization
+```text
+                 Shared Excitation
+                       F(t)
+                         │
+          ┌──────────────┼──────────────┐
+          ↓              ↓              ↓
+         f₁             f₂            f₅₀
+          │              │              │
+     γ₁(t), ω₁(t)  γ₂(t), ω₂(t)  γ₅₀(t), ω₅₀(t)
+```
 
-A temporal smoothness loss for the shared force is:
+The 50 outputs correspond to **acoustic frequency bins**, not anatomical regions.
 
-\sum_t|F_{t+1}-F_t|^2.
-]
+---
 
-A gradient-difference loss is:
+# 11. 📈 Dynamical Regularization
 
+The learned force can become unnecessarily irregular.
+
+A smoothness penalty is:
+
+\[
+L_{\mathrm{smooth}}^F
+=
+\sum_t
+|F_{t+1}-F_t|^2.
+\]
+
+A gradient-difference penalty is:
+
+\[
+L_{\mathrm{grad}}
+=
 \sum_t
 \left[
-(F_{t+1}-F_t)-(F_t-F_{t-1})
+(F_{t+1}-F_t)
+-
+(F_t-F_{t-1})
 \right]^2.
-]
+\]
 
 Equivalently:
 
-\sum_t(F_{t+1}-2F_t+F_{t-1})^2.
-]
+\[
+L_{\mathrm{grad}}
+=
+\sum_t
+(F_{t+1}-2F_t+F_{t-1})^2.
+\]
 
-The smoothness term discourages rapid frame-to-frame changes, while the gradient-difference term discourages abrupt changes in temporal slope.
+### Interpretation
 
-🧠 Part IV — Domain-Adversarial Learning
+- **Smoothness loss:** controls first-order temporal variation.
+- **Gradient-difference loss:** controls changes in the temporal slope.
 
-The encoder produces:
+Together, they encourage smoother learned dynamics.
 
-[
-z=f_\theta(x).
-]
+---
 
-The representation is sent to two branches:
+# 12. 👁️ Convolutional Stem + Vision Transformer
 
+The complete feature-extraction path is:
+
+```text
+Speech
+  ↓
+Spectrogram
+  ↓
+ConvStem
+  ↓
+GELU
+  ↓
+Stride Downsampling
+  ↓
+Patch / Token Representation
+  ↓
+Vision Transformer
+  ↓
+h_CLS
+```
+
+## Convolutional Stem
+
+The convolutional stem extracts **local time-frequency patterns** and reduces resolution.
+
+Stride-based downsampling reduces the number of tokens and therefore the computational cost of self-attention.
+
+GELU is:
+
+\[
+GELU(x)=x\Phi(x),
+\]
+
+where \(\Phi(x)\) is the standard Gaussian CDF.
+
+---
+
+## Patch Representation
+
+A spectrogram can be divided into patches:
+
+\[
+[P_1,P_2,\ldots,P_N].
+\]
+
+A learnable CLS token is prepended:
+
+\[
+[\mathrm{CLS},P_1,\ldots,P_N].
+\]
+
+After Transformer processing:
+
+\[
+[\mathrm{CLS},P_1,\ldots,P_N]
+\rightarrow
+[h_{\mathrm{CLS}},h_1,\ldots,h_N].
+\]
+
+The CLS representation is:
+
+\[
+h_{\mathrm{CLS}}.
+\]
+
+### What is \(h_{\mathrm{CLS}}\)?
+
+\(h_{\mathrm{CLS}}\) acts as a **global representation of the input spectrogram**.
+
+It aggregates information from different time-frequency regions through self-attention.
+
+For binary classification:
+
+\[
+h_{\mathrm{CLS}}
+\rightarrow
+\text{Linear Layer}
+\rightarrow
+[P(\mathrm{HC}),P(\mathrm{PD})].
+\]
+
+The **HC/PD prediction is produced by the classification head**, not by \(h_{\mathrm{CLS}}\) itself.
+
+---
+
+# 13. 🧭 Positional Encoding vs Causality
+
+These are two different concepts.
+
+```text
+Positional Encoding
+        │
+        └──► tells the Transformer WHERE a token occurs
+
+Causal Mask
+        │
+        └──► controls WHICH tokens a token can attend to
+```
+
+Causality is imposed by the **attention pattern**, typically using a mask that prevents attention to future positions.
+
+Positional encoding itself is **not causal**.
+
+A standard sinusoidal positional encoding is:
+
+\[
+PE(pos,2i)
+=
+\sin
+\left(
+\frac{pos}{10000^{2i/d_{\mathrm{model}}}}
+\right),
+\]
+
+\[
+PE(pos,2i+1)
+=
+\cos
+\left(
+\frac{pos}{10000^{2i/d_{\mathrm{model}}}}
+\right).
+\]
+
+---
+
+# 14. 🛡️ Domain-Adversarial Learning
+
+A domain can represent systematic acquisition differences such as:
+
+- Dataset
+- Microphone
+- Recording environment
+- Recording session
+
+The desired representation should rely on speech characteristics relevant to the task rather than nuisance domain characteristics.
+
+The representation \(z\) is sent to two branches:
+
+```text
                     Encoder
-                       |
-                       v
+                       │
+                       ▼
                        z
-                    /     \
-                   /       \
-                  v         v
-          Main classifier  GRL
-                            |
-                            v
-                    Domain classifier
+                    ╱   ╲
+                   ╱     ╲
+                  ▼       ▼
+           HC / PD       GRL
+          Classifier      │
+                          ▼
+                   Domain Classifier
+```
 
-Gradient Reversal Layer
+---
+
+## Gradient Reversal Layer
 
 During the forward pass:
 
-[
-\operatorname{GRL}(z)=z.
-]
+\[
+GRL(z)=z.
+\]
 
 During backpropagation:
 
+\[
+\frac{\partial GRL}{\partial z}
+=
 -\lambda I.
-]
+\]
 
-The domain classifier tries to predict the domain correctly, while the encoder receives the reversed gradient and is encouraged to make domain-specific information less useful.
+Thus, if the domain classifier receives gradient \(g\), the encoder receives:
 
-GRL does not output feature-relevance probabilities.
-The domain classifier outputs domain probabilities; GRL reverses the gradient.
+\[
+-\lambda g.
+\]
+
+The domain classifier attempts to identify the domain, while the feature extractor is encouraged to make domain identification difficult.
 
 A conceptual objective is:
 
-[
+\[
 \min_{\theta_f,\theta_y}
 \max_{\theta_d}
 \left[
 L_{\mathrm{class}}
--\lambda_dL_{\mathrm{domain}}
+-
+\lambda L_{\mathrm{domain}}
 \right].
-]
+\]
 
-Reconstruction and Self-Supervised Learning
+### Important
 
-When labeled data are limited, reconstruction can help learn useful speech representations:
+**GRL does not classify HC versus PD.**
 
-Input
-  |
-  v
-Encoder
-  |
-  v
-Latent representation
-  |
-  v
-Reconstruction
+**GRL does not assign relevance probabilities to individual features.**
 
-A general self-supervised learning pipeline is:
+Its purpose is to encourage the encoder to learn **domain-invariant representations**.
 
-[
-\begin{aligned}
-\text{Unlabeled speech}
-&\rightarrow \text{SSL pretraining}\
-&\rightarrow \text{Speech embedding}\
-&\rightarrow \text{PD classifier}.
-\end{aligned}
-]
+---
 
-The reconstruction objective encourages the model to preserve information about speech dynamics before or alongside supervised classification.
+# 15. 🧱 Stochastic Depth & Learning-Rate Scheduling
 
-Classical Acoustic Features
+## Stochastic Depth
 
-A conventional speech feature vector may contain:
+Stochastic depth randomly skips complete residual blocks during training.
 
-[
-\begin{aligned}
-\Big[
-&F_0,,
-\sigma_{F_0},,
-\mathrm{Jitter},,
-\mathrm{Shimmer},,
-\mathrm{HNR},,
-\mathrm{RMS},,
-\mathrm{ZCR},\
-&F_1,,
-F_2,,
-F_3,,
-\mathrm{MFCC}_1,,
-\ldots,,
-\mathrm{MFCC}_K
-\Big].
-\end{aligned}
-]
+Unlike dropout, which masks individual activations, stochastic depth removes an entire residual path for a training iteration.
 
-These describe properties such as fundamental frequency, pitch variation, amplitude variation, harmonic structure, signal energy, zero-crossing behavior, formants, and cepstral characteristics.
+This provides regularization for deep architectures.
 
-Training and Regularization
+---
 
-Stochastic Depth
+## Cosine Learning-Rate Schedule
 
-Stochastic depth randomly drops complete residual paths during training and acts as a regularizer for deep architectures.
+The cosine learning-rate schedule is:
 
-Cosine Learning-Rate Schedule
-
-[
-\eta_t=
-\eta_{\min}
-+\frac12(\eta_{\max}-\eta_{\min})
+\[
+LR_t
+=
+LR_{\min}
++
+\frac12
+(LR_{\max}-LR_{\min})
 \left[
-1+\cos\left(\frac{\pi t}{T}\right)
+1+
+\cos
+\left(
+\frac{\pi t}{T}
+\right)
 \right].
-]
+\]
 
-Adam
+It allows larger updates early in training and smaller refinements later.
 
-[
-m_t=\beta_1m_{t-1}+(1-\beta_1)g_t
-]
+The scheduler controls the **learning rate**, rather than directly changing the definition of the loss.
 
-[
-v_t=\beta_2v_{t-1}+(1-\beta_2)g_t^2.
-]
+---
 
-After bias correction:
+# 16. 🔁 Reconstruction, Prediction & Causality
 
-\theta_t-
-\eta
-\frac{\hat m_t}{\sqrt{\hat v_t}+\epsilon}.
-]
+Reconstruction can be used as a representation-learning objective:
 
-Experimental Results
+```text
+Speech
+  ↓
+Encoder
+  ↓
+Latent Representation
+  ↓
+Reconstruction
+```
 
-The reported average Dynamic Time Warping (DTW) results are:
+This is particularly useful when labeled data are limited.
 
-Contour
+The learned representation can subsequently support supervised classification.
 
-Proposed Model
+---
 
-Baseline
+## Offline vs Real-Time Modeling
 
-Contour 1
+Causality must be distinguished from positional encoding.
 
-52.41
+A causal model uses only permitted past information, whereas a non-causal model may use future context:
 
-56.74
+\[
+x_t
+\leftarrow
+x_{t-k},\ldots,x_t,\ldots,x_{t+k}.
+\]
 
-Contour 2
+Therefore:
 
-90.57
+- **Non-causal / offline:** future context can be used.
+- **Causal / real-time:** future information beyond the allowed latency cannot be used.
 
-106.10
+Claims of causality or real-time operation must therefore be tied to an explicit operational definition.
 
-Contour 3
+---
 
-33.69
+# 17. 🧮 Multi-Objective Training
 
-47.90
+A conceptual total objective is:
 
-Lower DTW indicates better contour alignment.
+\[
+L_{\mathrm{total}}
+=
+L_{\mathrm{task}}
++
+\lambda_{\mathrm{rec}}L_{\mathrm{rec}}
++
+\lambda_{\mathrm{smooth}}L_{\mathrm{smooth}}
++
+\lambda_{\mathrm{grad}}L_{\mathrm{grad}}
++
+\lambda_{\mathrm{adv}}L_{\mathrm{domain}}.
+\]
 
-Absolute reductions:
+The domain component is implemented adversarially through GRL rather than simply minimized by the feature extractor.
 
-[
-\Delta_1=4.33,\qquad
-\Delta_2=15.53,\qquad
-\Delta_3=14.21.
-]
+For ordinary binary classification, binary cross-entropy is:
 
-Relative improvements:
+\[
+L_{\mathrm{BCE}}
+=
+-
+\left[
+y\log p
++
+(1-y)\log(1-p)
+\right].
+\]
 
-Contour
+The exact coefficients depend on the final implementation.
 
-Relative improvement
+---
 
-Contour 1
+# 18. 🧪 Experimental Design
 
-7.63%
+The framework considers a progression of representations and classifiers:
 
-Contour 2
+| Experiment | Representation | Classifier |
+|---:|---|---|
+| 1 | MFCC only | SVM |
+| 2 | Classical acoustic features | Random Forest |
+| 3 | Classical acoustic features | MLP |
+| 4 | Learned speech embedding | MLP |
+| 5 | Learned speech embedding | SVM |
+| 6 | Classical + learned | MLP |
+| 7 | Frame sequence | LSTM |
+| 8 | Frame sequence | Transformer |
 
-14.64%
+This comparison addresses whether learned representations provide information beyond carefully designed acoustic features.
 
-Contour 3
+---
 
-29.67%
+# 19. 📊 Evaluation
 
-Architecture Comparison
+Evaluation should not rely on accuracy alone.
 
-Contour
+Relevant metrics include:
 
-Architecture
+- **Precision**
+- **Recall / Sensitivity**
+- **Specificity**
+- **F1 score**
+- **ROC curves**
+- **AUC**
+- Confusion matrix
 
-DTW
+## Subject-Level Leakage
 
-C1
+In PD analysis, **subject-independent splitting is essential**.
 
-MLP
+Recordings from the same speaker should not unintentionally appear in both training and test sets.
 
-52.41
+Otherwise, the model may learn speaker-specific characteristics rather than disease-relevant speech characteristics.
 
-C1
+---
 
-CNN + MLP
+# 20. 🔗 Integrated End-to-End Framework
 
-51.98
+The combined research framework can be summarized as:
 
-C1
+```text
+Speech Waveform
+      ↓
+Preprocessing + VAD
+      ↓
+Spectrogram
+      ↓
+┌─────────────────────────────────┐
+│ Physics-Inspired Representation │
+│                                 │
+│ F-head                          │
+│ γ-head                          │
+│ ω-head                          │
+└─────────────────────────────────┘
+      ↓
+ConvStem + GELU + Downsampling
+      ↓
+Patch Embeddings
+      ↓
+[CLS, P₁, ..., Pₙ]
+      ↓
+Vision Transformer
+      ↓
+h_CLS
+      │
+      ├──────────────► HC / PD Classifier
+      │
+      └──────────────► GRL → Domain Classifier
+```
 
-VAE
+This architecture combines **four complementary forms of information**:
 
-50.42
+### 1. Interpretable Acoustic Descriptors
 
-C1
+Pitch, jitter, shimmer, HNR, formants, RMS, ZCR, and MFCCs provide recognizable measurements of phonation and articulation.
 
-GAN
+### 2. Learned Representations
 
-52.87
+Learned embeddings can encode combinations of information distributed across many dimensions.
 
-C2
+### 3. Vision Transformer
 
-MLP
+The ViT models long-range relationships between time-frequency patches.
 
-90.57
+### 4. Structured Dynamics + Domain Robustness
 
-C2
+The physics-inspired branch models temporal dynamics, while the adversarial branch suppresses domain-specific nuisance information.
 
-VAE
+---
 
-93.34
+# 21. 💡 Key Conceptual Takeaways
 
-C2
+### Acoustic Features
 
-GAN
+```text
+F₀       → vocal-fold vibration rate
+Jitter   → period / frequency variation
+Shimmer  → amplitude variation
+HNR      → harmonic vs noise structure
+F₁,F₂,F₃ → vocal-tract resonances
+MFCCs    → compact spectral / cepstral representation
+```
 
-100.10
+### Learned Embeddings
 
-C3
+A learned embedding is a **joint representation**, not a list of independent manually defined acoustic features.
 
-MLP
+### Frequency Bins
 
-38.52
-
-C3
-
-CNN + adaptive pooling + MLP
-
-33.69
-
-C3
-
-CNN + MLP
-
-36.52
-
-C3
-
-VAE
-
-33.86
-
-C3
-
-GAN
-
-37.81
-
-These results suggest that different contours can benefit from different architectural inductive biases.
-
-Dataset
-
-The reported rtMRI data split is:
-
-Split
-
-Videos
-
-Training
-
-44
-
-Validation
-
-5
-
-Testing
-
-5
-
-Contour representation:
-
-Number of contours : 3
-Points per contour : 100
-Coordinates/point  : 2
-
-The primary reconstruction metric is Dynamic Time Warping (DTW).
-
-⭐ Key Conceptual Distinctions
-
-Positional Encoding vs Causality
-
-Positional Encoding
-    |
-    +--> tells the Transformer WHERE a token occurs
-
-Causal Mask
-    |
-    +--> controls WHICH tokens a token can attend to
-
-Frequency Bins vs Vocal-Tract Locations
-
+```text
 50 frequency bins
         ≠
 50 anatomical regions
+```
 
-GRL vs Feature Importance
+They represent different acoustic frequency regions.
 
-GRL
- |
- +--> reverses gradient
- |
- +--> encourages domain-invariant features
+### Physics-Inspired Parameters
 
-GRL
- |
- X --> does NOT directly produce feature importance
+```text
+F(t)             → shared excitation
+γ(f,t)           → frequency-dependent damping behavior
+ω(f,t)           → frequency-dependent oscillatory behavior
+X(f,t)           → acoustic response
+```
 
-(h_{\mathrm{CLS}}) vs Prediction
+### CLS Representation
 
+```text
 Spectrogram
-    |
-    v
-ViT
-    |
-    v
+    ↓
+Patch Tokens
+    ↓
+Vision Transformer
+    ↓
 h_CLS
-    |
-    v
-Classifier
-    |
-    v
-PD / HC probability
+    ↓
+Classification Head
+    ↓
+HC / PD Probability
+```
 
-Future Work
+### GRL
 
-Potential extensions include:
+```text
+Encoder
+   ↓
+Feature Representation
+   ├──► Main Task
+   │
+   └──► GRL ──► Domain Classifier
+                   │
+                   ▼
+             Gradient Reversal
+```
 
-cross-attention between audio and rtMRI representations;
+GRL encourages **domain-invariant features**; it is not a feature-importance estimator.
 
-synchronized audio--rtMRI multimodal learning;
+---
 
-physics-informed constraints linking acoustic and articulatory representations;
+# 22. ⚠️ Limitations & Practical Considerations
 
-uncertainty-aware contour reconstruction;
+Several sources of error should be considered:
 
-self-supervised pretraining on larger unlabeled speech datasets;
+- Recording noise
+- Microphone differences
+- Room acoustics
+- Speaker variability
+- Class imbalance
+- Data leakage
 
-speaker and acquisition-domain adaptation;
+Aggressive denoising may also remove acoustic characteristics that are useful for diagnosis.
 
-causal/low-latency variants for real-time deployment;
+Similarly, a complex model does not automatically provide a stronger experiment than a carefully controlled classical baseline.
 
-interpretability of frequency regions contributing to classification;
+The distinction between **offline analysis** and **true real-time prediction** is also important.
 
-joint learning of articulatory and acoustic latent representations.
+A non-causal Transformer can exploit both past and future context, whereas a strict real-time system cannot use future frames beyond its allowed latency.
 
-A possible multimodal architecture is:
+---
 
-                 Speech waveform
-                       |
-                       v
-                 Audio Encoder
-                       |
-                       v
-                  Audio tokens
-                       |
-                       +----------------+
-                                        |
-                                        v
-                                   Cross-Attention
-                                        ^
-                                        |
-                       +----------------+
-                       |
-                       v
+# 23. 🚀 Future Research Directions
+
+The framework naturally motivates several extensions:
+
+- Multimodal audio + rtMRI learning
+- Cross-attention between acoustic and articulatory representations
+- Physics-informed constraints linking acoustic and articulatory dynamics
+- Larger-scale self-supervised pretraining
+- Domain adaptation across datasets and recording conditions
+- Uncertainty-aware modeling
+- Interpretable frequency-region analysis
+- Joint acoustic-articulatory latent representations
+- Low-latency causal variants for real-time deployment
+
+A possible multimodal direction is:
+
+```text
+                  Speech Waveform
+                       │
+                       ▼
+                  Audio Encoder
+                       │
+                       ▼
+                  Audio Tokens
+                       │
+                       │
+                       ▼
+                 Cross-Attention
+                       ▲
+                       │
+                       │
                   rtMRI Encoder
-                       |
-                       v
-                ATB representations
-                       |
-                       v
-                Shared latent space
-                       |
-             +---------+---------+
-             |                   |
-             v                   v
-       Reconstruction       Classification
+                       │
+                       ▼
+                ATB Representations
+                       │
+                       ▼
+                 Shared Latent Space
+                    ╱       ╲
+                   ▼         ▼
+          Reconstruction   Classification
+```
 
-Repository Structure
+---
 
-A recommended structure is:
+# 📚 Research Paper
 
-.
-├── README.md
-├── latex/
-│   └── combined_speech_dynamics_research_paper.tex
-├── src/
-│   ├── models/
-│   ├── preprocessing/
-│   ├── losses/
-│   └── training/
-├── data/
-│   └── README.md
-├── experiments/
-│   ├── contour1/
-│   ├── contour2/
-│   └── contour3/
-├── results/
-│   └── README.md
-└── requirements.txt
+The complete research formulation is documented in the accompanying paper:
 
-Installation
+> **Speech-Based Parkinson’s Disease Analysis: From Acoustic Feature Engineering to Physics-Inspired Vision Transformers**
 
-git clone <YOUR_REPOSITORY_URL>
-cd <YOUR_REPOSITORY_NAME>
-pip install -r requirements.txt
+**Author:** Rishant Mallick  
+**Date:** August 2026
 
-Typical dependencies include:
+The paper covers the complete progression from conventional speech processing and acoustic features to the physics-inspired Vision Transformer framework.
 
-Python
-PyTorch
-NumPy
-SciPy
-scikit-learn
-OpenCV
-Matplotlib
+---
 
-Use the exact dependencies specified by the implementation when reproducing the experiments.
+# 📝 Citation
 
-Running the Project
+If you use this work in research, please cite:
 
-Typical workflow:
-
-1. Prepare rtMRI / speech data
-        |
-        v
-2. Preprocess data
-        |
-        v
-3. Extract contours / spectrograms
-        |
-        v
-4. Train reconstruction model
-        |
-        v
-5. Train acoustic representation model
-        |
-        v
-6. Apply domain-adversarial learning
-        |
-        v
-7. Evaluate reconstruction / classification
-        |
-        v
-8. Analyze learned speech dynamics
-
-Example commands, if corresponding scripts exist:
-
-python train.py
-python evaluate.py
-
-Replace these with the actual scripts in the repository.
-
-Research Paper
-
-The detailed research-paper version is provided in:
-
-latex/combined_speech_dynamics_research_paper.tex
-
-It contains the mathematical formulation, model descriptions, losses, experimental results, discussion, limitations, and references.
-
-Citation
-
-If this work is used in research:
-
-@article{mallick_speech_dynamics,
-  title   = {A Physics-Informed Framework for Speech Dynamics:
-             Air-Tissue Boundary Reconstruction and
-             Time-Frequency Representation Learning},
+```bibtex
+@article{mallick2026speech,
+  title   = {Speech-Based Parkinson's Disease Analysis:
+             From Acoustic Feature Engineering to Physics-Inspired Vision Transformers},
   author  = {Rishant Mallick},
   year    = {2026}
 }
+```
 
-Acknowledgement
+---
 
-This work is associated with the Signal Processing, Interpretation and REpresentation (SPIRE) Laboratory, Indian Institute of Science (IISc), Bangalore.
+# 👤 Author
 
-License
+**Rishant Mallick**
 
-Add the appropriate license for the repository before making the project public.
+Research focus:
+
+- Speech Processing
+- Parkinson's Disease Analysis
+- Deep Learning
+- Vision Transformers
+- Physics-Inspired Learning
+- Self-Supervised Learning
+- Domain-Adversarial Learning
+- Acoustic Signal Processing
+
+---
+
+# ⭐ Final Perspective
+
+The framework connects classical signal processing with modern representation learning:
+
+\[
+\boxed{
+\text{Speech}
+\rightarrow
+\text{Acoustic/Spectral Representation}
+\rightarrow
+\text{Learned Representation}
+\rightarrow
+\text{Structured Dynamics}
+\rightarrow
+\text{Robust Classification}
+}
+\]
+
+The central objective is not simply to replace classical acoustic features with a larger neural network.
+
+Instead, the framework combines:
+
+**interpretability + learned representations + temporal structure + physics-inspired inductive bias + domain robustness**
+
+to build a more structured approach to speech-based Parkinson’s disease analysis.
+
